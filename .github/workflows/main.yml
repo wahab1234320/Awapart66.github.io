@@ -1,5 +1,4 @@
-
-name: Build AWAPART66 APK
+name: Build AWAPART 66 APK
 
 on:
   workflow_dispatch:
@@ -12,12 +11,11 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Set up Java
+      - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -29,31 +27,26 @@ jobs:
           gradle-version: '8.9'
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v4
-        with:
-          accept-android-sdk-licenses: true
-          log-accepted-android-sdk-licenses: false
-          packages: platform-tools
+        uses: android-actions/setup-android@v3
 
       - name: Install Android platform
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Extract Android project
+      - name: Extract fixed Android project
         run: |
-          ZIP_FILE=$(find . -maxdepth 1 -type f -iname '*.zip' | head -n 1)
-          test -n "$ZIP_FILE"
-          mkdir -p source
-          unzip -q "$ZIP_FILE" -d source
-          test -f source/AWAPART66-Android/settings.gradle
+          ZIP_FILE="AWAPART66-Android-JVM17-FIX.zip"
+          test -f "$ZIP_FILE" || { echo "File $ZIP_FILE tidak ditemukan di root repository"; exit 1; }
+          unzip -o "$ZIP_FILE" -d extracted-project
+          test -f extracted-project/AWAPART66-Android/app/build.gradle
+          test -f extracted-project/AWAPART66-Android/settings.gradle
 
-      - name: Build APK
-        working-directory: source/AWAPART66-Android
-        run: gradle --no-daemon :app:assembleDebug
+      - name: Build debug APK
+        run: gradle --no-daemon -p extracted-project/AWAPART66-Android :app:assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: AWAPART66-debug-apk
-          path: source/AWAPART66-Android/app/build/outputs/apk/debug/app-debug.apk
+          path: extracted-project/AWAPART66-Android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
