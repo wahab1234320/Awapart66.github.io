@@ -92,9 +92,417 @@ body{padding:0}
 <footer class="footer">© 2026 PT AWAPART SUKSES BERSAMA · AWAPART 66<br>Reservasi dan kerja sama properti<br><div style="margin-top:10px">Admin WhatsApp: <a style="color:#e4c47e" href="https://wa.me/6285785402106">085785402106</a><br>Email: <a style="color:#e4c47e" href="mailto:awapartsukses@gmail.com">awapartsukses@gmail.com</a></div><div style="margin-top:12px"><a class="btn" style="display:inline-block;text-decoration:none" href="https://wa.me/6285785402106?text=Halo%20AWAPART%2066%2C%20saya%20ingin%20bertanya%20tentang%20penyewaan%20apartemen.">Hubungi Admin via WhatsApp</a></div></footer></div>
 <div class="modal" id="modal"><div class="modalbox"><div class="modalhead"><h3 id="modalTitle">Booking Apartemen</h3><button class="close" onclick="closeModal()">✕</button></div><div id="modalContent"></div></div></div><div class="toast" id="toast"></div>
 <script>
-const pics=['https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=900&q=80','https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=900&q=80','https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=900&q=80'];let units=[{id:1,name:'Apartemen Modern City View',loc:'Surabaya',price:350000,type:'Harian',img:pics[0],beds:1},{id:2,name:'Apartemen Family Residence',loc:'Surabaya Barat',price:450000,type:'Harian',img:pics[1],beds:2},{id:3,name:'Studio Minimalis Premium',loc:'Surabaya Pusat',price:300000,type:'Harian',img:pics[2],beds:1}];let bookings=JSON.parse(localStorage.getItem('aw66_bookings')||'[]'),partners=JSON.parse(localStorage.getItem('aw66_partners')||'[]');
-function persist(){localStorage.setItem('aw66_bookings',JSON.stringify(bookings));localStorage.setItem('aw66_partners',JSON.stringify(partners));}
-function submitProof(id){const f=document.getElementById('proofFile').files[0];if(!f){toast('Pilih file bukti transfer terlebih dahulu.');return}const b=bookings.find(x=>x.id===id);if(b){b.proof=f.name;b.status='Menunggu verifikasi admin';persist();render()}closeModal();toast('Nama file bukti transfer tercatat di demo.');}
-function approveBooking(id){const b=bookings.find(x=>x.id===id);if(b){b.status='Pembayaran diverifikasi';persist();render();toast('Status booking diperbarui di perangkat ini.');}}
-function rupiah(n){return 'Rp'+Number(n).toLocaleString('id-ID')}function card(u){return `<article class="card"><div class="photo" style="background-image:url('${u.img||pics[0]}')"><span class="tag">${u.type||'Harian'}</span></div><div class="cardbody"><h3>${u.name}</h3><div class="muted">⌖ ${u.loc}</div><div class="meta"><span>▣ ${u.beds||1} kamar</span><span>♧ Maks. 2 tamu</span></div><div class="price">${rupiah(u.price)} <small>/ malam</small></div><div style="height:12px"></div><button class="btn" onclick="openBooking(${u.id})">Lihat & Booking</button></div></article>`}function render(){document.getElementById('homeCards').innerHTML=units.slice(0,3).map(card).join('');document.getElementById('allCards').innerHTML=units.map(card).join('');document.getElementById('statUnits').textContent=units.length;document.getElementById('statBookings').textContent=bookings.length;document.getElementById('statPartners').textContent=partners.length;document.getElementById('statRevenue').textContent=rupiah(bookings.reduce((a,b)=>a+b.total,0));document.getElementById('adminBookings').innerHTML=bookings.length?bookings.map(b=>`<tr><td>${b.name}<br><small>${b.id}</small></td><td>${b.unit}</td><td>${b.date}<br>${rupiah(b.total)}</td><td><span class="pill pending">${b.status||'Menunggu pembayaran'}</span><br>${b.proof?'<small>Bukti: '+b.proof+'</small>':'<small>Belum ada bukti</small>'}<br><button class="btn" style="margin-top:6px;padding:7px 9px" onclick="approveBooking('${b.id}')">Verifikasi</button></td></tr>`).join(''):'<tr><td colspan="4" class="muted">Belum ada reservasi.</td></tr>';document.getElementById('adminPartners').innerHTML=partners.length?partners.map(p=>`<tr><td>${p.owner}</td><td>${p.property}</td><td>${p.phone}</td><td><span class="pill pending">Baru</span></td></tr>`).join(''):'<tr><td colspan="4" class="muted">Belum ada pengajuan.</td></tr>'}function showPage(p){document.querySelectorAll('main').forEach(x=>x.classList.add('hidden'));document.getElementById(p).classList.remove('hidden');document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===p));window.scrollTo({top:0,behavior:'smooth'});render()}function filterUnits(){let q=document.getElementById('searchLoc').value.toLowerCase(),t=document.getElementById('searchType').value;let a=units.filter(u=>(!q||(u.name+' '+u.loc).toLowerCase().includes(q))&&(t==='Semua'||u.type===t));document.getElementById('allCards').innerHTML=a.length?a.map(card).join(''):'<p class="muted">Unit tidak ditemukan. Coba kata kunci lain.</p>';showPage('units');document.getElementById('allCards').innerHTML=a.length?a.map(card).join(''):'<p class="muted">Unit tidak ditemukan.</p>'}function openBooking(id){let u=units.find(x=>x.id===id);document.getElementById('modalTitle').textContent='Booking '+u.name;document.getElementById('modalContent').innerHTML=`<p class="muted">${u.loc} · ${rupiah(u.price)} per malam</p><div class="formgrid"><div class="full"><label>Nama lengkap</label><input id="guestName" placeholder="Nama sesuai identitas"></div><div><label>Nomor WhatsApp</label><input id="guestPhone" placeholder="08xxxxxxxxxx"></div><div><label>Tanggal check-in</label><input id="guestDate" type="date" min="${new Date().toISOString().slice(0,10)}"></div><div><label>Lama menginap (malam)</label><input id="guestNights" type="number" min="1" value="1" onchange="calcTotal(${u.price})"></div><div><label>Jumlah tamu</label><select id="guestCount"><option>1</option><option selected>2</option></select></div><div class="full notice" id="totalPrice">Total estimasi: ${rupiah(u.price)}</div><div class="full"><button class="btn" style="width:100%" onclick="saveBooking(${u.id})">Kirim Permintaan Booking</button></div></div>`;document.getElementById('modal').classList.add('show')}function calcTotal(p){let n=Math.max(1,Number(document.getElementById('guestNights').value)||1);document.getElementById('totalPrice').textContent='Total estimasi: '+rupiah(p*n)}function closeModal(){document.getElementById('modal').classList.remove('show')}function saveBooking(id){let name=document.getElementById('guestName').value.trim(),phone=document.getElementById('guestPhone').value.trim(),date=document.getElementById('guestDate').value,n=Math.max(1,Number(document.getElementById('guestNights').value)||1),u=units.find(x=>x.id===id);if(!name||!phone||!date){toast('Lengkapi nama, WhatsApp, dan tanggal check-in.');return}const booking={id:'AW'+Date.now(),name,phone,date,unit:u.name,total:u.price*n,status:'Menunggu pembayaran',proof:''};bookings.push(booking);persist();render();document.getElementById('modalTitle').textContent='Pembayaran Transfer Bank';document.getElementById('modalContent').innerHTML=`<div class="notice">Silakan transfer sesuai total tagihan. Booking diproses setelah admin memeriksa bukti pembayaran.</div><div class="panel" style="margin-top:14px"><b>Bank BCA</b><div style="font-size:25px;font-weight:850;letter-spacing:1px;margin:8px 0">6037152805</div><div>Atas nama: <b>Abdul Wahhab</b></div><div style="margin-top:10px">Total tagihan: <b class="price">${rupiah(booking.total)}</b></div><div class="muted" style="margin-top:8px">Kode booking: ${booking.id}</div></div><div class="field"><label>UNGGAH BUKTI TRANSFER (DEMO)</label><input id="proofFile" type="file" accept="image/*"></div><button class="btn" style="width:100%;margin-top:14px" onclick="submitProof('${booking.id}')">Kirim Bukti Transfer</button><button class="close" style="width:100%;margin-top:8px" onclick="closeModal()">Nanti saja</button>`;}function lookupBookings(){let p=document.getElementById('lookupPhone').value.trim(),a=bookings.filter(b=>b.phone===p);document.getElementById('bookingResults').innerHTML=a.length?a.map(b=>`<p><b>${b.unit}</b><br>Kode: ${b.id}<br>${b.date} · ${rupiah(b.total)}<br><span class="pill pending">${b.status||'Menunggu pembayaran'}</span></p>`).join(''):'Tidak ada booking demo dengan nomor tersebut.'}function submitPartner(){let owner=document.getElementById('owner').value.trim(),phone=document.getElementById('ownerPhone').value.trim(),property=document.getElementById('property').value.trim();if(!owner||!phone||!property){toast('Lengkapi data pemilik, WhatsApp, dan properti.');return}partners.push({owner,phone,property});persist();render();['owner','ownerPhone','property'].forEach(x=>document.getElementById(x).value='');toast('Pengajuan kerja sama tersimpan di demo.')}function addUnit(){let name=document.getElementById('newName').value.trim(),loc=document.getElementById('newLocation').value.trim(),price=Number(document.getElementById('newPrice').value);if(!name||!loc||!price){toast('Lengkapi nama, lokasi, dan harga.');return}units.push({id:Date.now(),name,loc,price,type:'Harian',img:pics[0],beds:1});['newName','newLocation','newPrice'].forEach(x=>document.getElementById(x).value='');render();toast('Unit ditambahkan ke daftar demo.')}function toast(s){let t=document.getElementById('toast');t.textContent=s;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800)}render();
+
+const API = "/api";
+let units = [];
+let bookings = [];
+let partners = [];
+let adminToken = sessionStorage.getItem("aw66_admin_token") || "";
+let activeUnit = null;
+
+const pics = [
+  "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=900&q=80"
+];
+
+function rupiah(n) {
+  return "Rp" + Number(n || 0).toLocaleString("id-ID");
+}
+
+function toast(message) {
+  const el = document.getElementById("toast");
+  el.textContent = message;
+  el.classList.add("show");
+  setTimeout(() => el.classList.remove("show"), 3000);
+}
+
+async function api(path, options = {}) {
+  const headers = { ...(options.headers || {}) };
+  if (adminToken) headers.Authorization = "Bearer " + adminToken;
+  if (options.body && !(options.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  const response = await fetch(API + path, { ...options, headers });
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.error || "Permintaan gagal");
+  }
+  return data;
+}
+
+async function loadUnits() {
+  try {
+    const data = await api("/units");
+    units = data.map((u, i) => ({
+      id: u.id,
+      name: u.name,
+      loc: u.location,
+      price: Number(u.price_daily),
+      type: "Harian",
+      img: pics[i % pics.length],
+      beds: 1
+    }));
+    renderUnits();
+  } catch (error) {
+    toast("Gagal memuat unit: " + error.message);
+  }
+}
+
+function card(u) {
+  return `<article class="card">
+    <div class="photo" style="background-image:url('${u.img}')">
+      <span class="tag">${u.type}</span>
+    </div>
+    <div class="cardbody">
+      <h3>${u.name}</h3>
+      <div class="muted">⌖ ${u.loc}</div>
+      <div class="meta">Maks. 2 tamu</div>
+      <div class="price">${rupiah(u.price)} <small>/ malam</small></div>
+      <div style="height:12px"></div>
+      <button class="btn" onclick="openBooking(${u.id})">Lihat & Booking</button>
+    </div>
+  </article>`;
+}
+
+function renderUnits() {
+  document.getElementById("homeCards").innerHTML =
+    units.slice(0, 3).map(card).join("");
+
+  document.getElementById("allCards").innerHTML =
+    units.length ? units.map(card).join("") :
+    '<p class="muted">Belum ada unit tersedia.</p>';
+
+  document.getElementById("statUnits").textContent = units.length;
+}
+
+function showPage(page) {
+  document.querySelectorAll("main").forEach(el => el.classList.add("hidden"));
+  document.getElementById(page).classList.remove("hidden");
+
+  document.querySelectorAll(".nav button").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.page === page);
+  });
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+
+  if (page === "admin") {
+    adminLogin();
+  }
+}
+
+function filterUnits() {
+  const keyword = document.getElementById("searchLoc").value.toLowerCase();
+  const type = document.getElementById("searchType").value;
+
+  const result = units.filter(u =>
+    (!keyword || (u.name + " " + u.loc).toLowerCase().includes(keyword)) &&
+    (type === "Semua" || u.type === type)
+  );
+
+  document.getElementById("allCards").innerHTML =
+    result.length ? result.map(card).join("") :
+    '<p class="muted">Unit tidak ditemukan.</p>';
+
+  showPage("units");
+}
+
+function openBooking(id) {
+  activeUnit = units.find(u => u.id === id);
+  if (!activeUnit) return;
+
+  document.getElementById("modalTitle").textContent =
+    "Booking " + activeUnit.name;
+
+  document.getElementById("modalContent").innerHTML = `
+    <p class="muted">${activeUnit.loc} · ${rupiah(activeUnit.price)} per malam</p>
+    <div class="formgrid">
+      <div class="full"><label>Nama lengkap</label>
+        <input id="guestName" placeholder="Nama sesuai identitas"></div>
+      <div><label>Nomor WhatsApp</label>
+        <input id="guestPhone" placeholder="08xxxxxxxxxx"></div>
+      <div><label>Tanggal check-in</label>
+        <input id="guestDate" type="date" min="${new Date().toISOString().slice(0,10)}"></div>
+      <div><label>Lama menginap</label>
+        <input id="guestNights" type="number" min="1" value="1"></div>
+      <div class="full notice" id="totalPrice">
+        Total estimasi: ${rupiah(activeUnit.price)}
+      </div>
+      <div class="full">
+        <button class="btn" style="width:100%" onclick="saveBooking()">
+          Kirim Permintaan Booking
+        </button>
+      </div>
+    </div>`;
+
+  document.getElementById("modal").classList.add("show");
+  document.getElementById("guestNights").addEventListener("input", () => {
+    const nights = Math.max(1, Number(document.getElementById("guestNights").value) || 1);
+    document.getElementById("totalPrice").textContent =
+      "Total estimasi: " + rupiah(activeUnit.price * nights);
+  });
+}
+
+async function saveBooking() {
+  const name = document.getElementById("guestName").value.trim();
+  const phone = document.getElementById("guestPhone").value.trim().replace(/[\s-]/g, "");
+  const date = document.getElementById("guestDate").value;
+  const days = Number(document.getElementById("guestNights").value);
+
+  if (!name || !phone || !date || !Number.isInteger(days) || days < 1 || days > 90) {
+    toast("Lengkapi data booking dengan benar.");
+    return;
+  }
+
+  try {
+    const booking = await api("/bookings", {
+      method: "POST",
+      body: JSON.stringify({
+        customer_name: name,
+        phone,
+        unit_id: activeUnit.id,
+        check_in: date,
+        days
+      })
+    });
+
+    document.getElementById("modalTitle").textContent = "Booking berhasil dibuat";
+    document.getElementById("modalContent").innerHTML = `
+      <div class="notice">Simpan kode booking berikut untuk mengecek reservasi.</div>
+      <div class="panel">
+        <b>Kode booking</b>
+        <div style="font-size:23px;font-weight:850;margin:10px 0">${booking.id}</div>
+        <b>Bank ${booking.bank}</b>
+        <div style="font-size:24px;font-weight:850;margin:8px 0">${booking.account_number}</div>
+        Atas nama: ${booking.account_name}
+        <p>Total tagihan: <b class="price">${rupiah(booking.total)}</b></p>
+      </div>
+      <div class="field">
+        <label>Unggah bukti transfer</label>
+        <input id="proofFile" type="file" accept="image/jpeg,image/png,image/webp,application/pdf">
+      </div>
+      <button class="btn" style="width:100%;margin-top:12px"
+        onclick="submitProof('${booking.id}','${phone}')">Kirim Bukti Transfer</button>
+      <button class="close" style="width:100%;margin-top:8px" onclick="closeModal()">Tutup</button>`;
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+async function submitProof(id, phone) {
+  const file = document.getElementById("proofFile").files[0];
+  if (!file) return toast("Pilih bukti transfer terlebih dahulu.");
+
+  const form = new FormData();
+  form.append("proof", file);
+
+  try {
+    await api("/bookings/" + encodeURIComponent(id) + "/proof", {
+      method: "POST",
+      body: form
+    });
+    toast("Bukti transfer berhasil dikirim.");
+    closeModal();
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+function closeModal() {
+  document.getElementById("modal").classList.remove("show");
+}
+
+async function lookupBookings() {
+  const phone = document.getElementById("lookupPhone").value.trim();
+  const id = prompt("Masukkan kode booking AWAPART 66:");
+
+  if (!phone || !id) return toast("Nomor WhatsApp dan kode booking wajib diisi.");
+
+  try {
+    const b = await api("/bookings/lookup?phone=" +
+      encodeURIComponent(phone) + "&id=" + encodeURIComponent(id.trim()));
+
+    document.getElementById("bookingResults").innerHTML = `
+      <b>${b.unit_name}</b>
+      <p>Kode: ${b.id}</p>
+      <p>Tanggal: ${b.check_in}</p>
+      <p>Lama menginap: ${b.days} malam</p>
+      <p>Total: ${rupiah(b.total)}</p>
+      <span class="pill pending">${b.status}</span>`;
+  } catch (error) {
+    document.getElementById("bookingResults").textContent = error.message;
+  }
+}
+
+async function submitPartner() {
+  const owner = document.getElementById("owner").value.trim();
+  const phone = document.getElementById("ownerPhone").value.trim();
+  const property = document.getElementById("property").value.trim();
+  const type = document.getElementById("propertyType").value;
+
+  if (!owner || !phone || !property) {
+    return toast("Lengkapi data pemilik, WhatsApp, dan properti.");
+  }
+
+  try {
+    await api("/partners", {
+      method: "POST",
+      body: JSON.stringify({
+        owner_name: owner,
+        phone,
+        property_name: property,
+        property_type: type
+      })
+    });
+
+    ["owner", "ownerPhone", "property"].forEach(id => {
+      document.getElementById(id).value = "";
+    });
+    toast("Pengajuan kerja sama berhasil dikirim.");
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+async function adminLogin() {
+  if (!adminToken) {
+    const email = prompt("Email admin AWAPART:");
+    if (!email) return;
+    const password = prompt("Password admin:");
+    if (!password) return;
+
+    try {
+      const result = await api("/admin/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password })
+      });
+      adminToken = result.token;
+      sessionStorage.setItem("aw66_admin_token", adminToken);
+      toast("Login admin berhasil.");
+    } catch (error) {
+      toast(error.message);
+      return;
+    }
+  }
+
+  await loadAdmin();
+}
+
+async function loadAdmin() {
+  try {
+    const [summary, allBookings, allPartners] = await Promise.all([
+      api("/admin/summary"),
+      api("/admin/bookings"),
+      api("/admin/partners")
+    ]);
+
+    bookings = allBookings;
+    partners = allPartners;
+
+    document.querySelector("#admin .muted").textContent =
+      "Data dashboard tersambung ke server AWAPART 66";
+
+    document.querySelector("#admin .pill").textContent = "ONLINE";
+    document.getElementById("statBookings").textContent = summary.bookings;
+    document.getElementById("statPartners").textContent = partners.length;
+    document.getElementById("statRevenue").textContent =
+      rupiah(summary.verified_revenue);
+
+    document.getElementById("adminBookings").innerHTML =
+      bookings.length ? bookings.map(b => `
+        <tr>
+          <td>${b.customer_name}<br><small>${b.id}</small></td>
+          <td>${b.unit_name}</td>
+          <td>${b.check_in}<br>${rupiah(b.total)}</td>
+          <td>
+            <span class="pill pending">${b.status}</span><br>
+            <button class="btn" style="margin-top:6px"
+              onclick="updateBooking('${b.id}','PEMBAYARAN_DIVERIFIKASI')">Verifikasi</button>
+            <button class="close" onclick="updateBooking('${b.id}','DITOLAK')">Tolak</button>
+          </td>
+        </tr>`).join("") :
+      '<tr><td colspan="4">Belum ada reservasi.</td></tr>';
+
+    document.getElementById("adminPartners").innerHTML =
+      partners.length ? partners.map(p => `
+        <tr>
+          <td>${p.owner_name}</td>
+          <td>${p.property_name}</td>
+          <td>${p.phone}</td>
+          <td>
+            <span class="pill pending">${p.status}</span><br>
+            <button class="btn" onclick="updatePartner(${p.id},'DIHUBUNGI')">Hubungi</button>
+            <button class="close" onclick="updatePartner(${p.id},'DISETUJUI')">Setujui</button>
+          </td>
+        </tr>`).join("") :
+      '<tr><td colspan="4">Belum ada pengajuan.</td></tr>';
+
+    toast("Data admin berhasil dimuat.");
+  } catch (error) {
+    if (error.message.includes("Autentikasi")) {
+      adminToken = "";
+      sessionStorage.removeItem("aw66_admin_token");
+    }
+    toast("Dashboard admin: " + error.message);
+  }
+}
+
+async function updateBooking(id, status) {
+  try {
+    await api("/admin/bookings/" + encodeURIComponent(id) + "/status", {
+      method: "PATCH",
+      body: JSON.stringify({ status })
+    });
+    await loadAdmin();
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+async function updatePartner(id, status) {
+  try {
+    await api("/admin/partners/" + id + "/status", {
+      method: "PATCH",
+      body: JSON.stringify({ status })
+    });
+    await loadAdmin();
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+async function addUnit() {
+  const name = document.getElementById("newName").value.trim();
+  const location = document.getElementById("newLocation").value.trim();
+  const price_daily = Number(document.getElementById("newPrice").value);
+
+  if (!name || !location || !Number.isSafeInteger(price_daily) || price_daily <= 0) {
+    return toast("Lengkapi nama, lokasi, dan harga.");
+  }
+
+  try {
+    await api("/admin/units", {
+      method: "POST",
+      body: JSON.stringify({ name, location, price_daily })
+    });
+
+    ["newName", "newLocation", "newPrice"].forEach(id => {
+      document.getElementById(id).value = "";
+    });
+
+    await loadUnits();
+    await loadAdmin();
+    toast("Unit berhasil ditambahkan ke server.");
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+async function render() {
+  await loadUnits();
+}
+
+render();
 </script></body></html>
