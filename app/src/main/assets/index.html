@@ -366,28 +366,73 @@ async function submitPartner() {
   }
 }
 
-async function adminLogin() {
-  if (!adminToken) {
-    const email = prompt("Email admin AWAPART:");
-    if (!email) return;
-    const password = prompt("Password admin:");
-    if (!password) return;
 
-    try {
-      const result = await api("/admin/login", {
-        method: "POST",
-        body: JSON.stringify({ email, password })
-      });
-      adminToken = result.token;
-      sessionStorage.setItem("aw66_admin_token", adminToken);
-      toast("Login admin berhasil.");
-    } catch (error) {
-      toast(error.message);
-      return;
-    }
+async function adminLogin() {
+  if (adminToken) {
+    await loadAdmin();
+    return;
   }
 
-  await loadAdmin();
+  document.getElementById("modalTitle").textContent =
+    "Login Admin AWAPART 66";
+
+  document.getElementById("modalContent").innerHTML = `
+    <form id="adminLoginForm" class="formgrid">
+      <div class="full">
+        <label>Email Admin</label>
+        <input
+          id="adminEmail"
+          type="email"
+          placeholder="Masukkan email admin"
+          autocomplete="username"
+          required
+        >
+      </div>
+
+      <div class="full">
+        <label>Password</label>
+        <input
+          id="adminPassword"
+          type="password"
+          placeholder="Masukkan password"
+          autocomplete="current-password"
+          required
+        >
+      </div>
+
+      <div class="full">
+        <button class="btn" type="submit" style="width:100%">
+          Masuk Dashboard
+        </button>
+      </div>
+    </form>
+  `;
+
+  document.getElementById("modal").classList.add("show");
+
+  document.getElementById("adminLoginForm")
+    .addEventListener("submit", async function(event) {
+      event.preventDefault();
+
+      const email = document.getElementById("adminEmail").value.trim();
+      const password = document.getElementById("adminPassword").value;
+
+      try {
+        const result = await api("/admin/login", {
+          method: "POST",
+          body: JSON.stringify({ email, password })
+        });
+
+        adminToken = result.token;
+        sessionStorage.setItem("aw66_admin_token", adminToken);
+
+        closeModal();
+        await loadAdmin();
+        toast("Login admin berhasil.");
+      } catch (error) {
+        toast("Login gagal: " + error.message);
+      }
+    });
 }
 
 async function loadAdmin() {
